@@ -12,6 +12,10 @@ const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
 
 // Format score with appropriate color class
 function formatScore(score) {
+    if (typeof score !== 'number') {
+        console.error('Invalid score:', score);
+        return `<span class="text-danger">N/A</span>`;
+    }
     if (score >= 90) {
         return `<span class="text-success">${score.toFixed(1)}</span>`;
     } else if (score >= 70) {
@@ -69,6 +73,12 @@ document.getElementById('seoForm').addEventListener('submit', async (e) => {
         document.getElementById('title').textContent = data.title;
         document.getElementById('metaDescription').textContent = data.meta_description;
         document.getElementById('wordCount').textContent = data.word_count;
+
+        // Debugging statements to check values
+        console.log('Readability Score:', data.readability_score);
+        console.log('Page Load Time:', data.performance.page_load_time);
+        console.log('Server Response Time:', data.performance.server_response_time);
+
         document.getElementById('readabilityScore').textContent = data.readability_score.toFixed(2);
         
         // Update performance metrics
@@ -76,6 +86,30 @@ document.getElementById('seoForm').addEventListener('submit', async (e) => {
         document.getElementById('serverResponseTime').textContent = `${data.performance.server_response_time.toFixed(2)}s`;
         document.getElementById('resourceCount').textContent = data.performance.resource_count;
         document.getElementById('performanceScore').innerHTML = formatScore(data.performance.performance_score);
+        
+        // Update overall SEO score
+        const overallScore = data.overall_seo_score;
+        document.getElementById('overallScore').innerHTML = formatScore(overallScore);
+        
+        // Update score breakdown
+        const scoreBreakdown = document.getElementById('scoreBreakdown');
+        scoreBreakdown.innerHTML = `
+            <div class="mb-2">
+                <strong>Performance:</strong> ${formatScore(data.performance.performance_score)} (25% weight)
+            </div>
+            <div class="mb-2">
+                <strong>Mobile:</strong> ${formatScore(data.mobile.mobile_score)} (20% weight)
+            </div>
+            <div class="mb-2">
+                <strong>Content:</strong> ${formatScore(data.content_quality.score)} (20% weight)
+            </div>
+            <div class="mb-2">
+                <strong>Technical:</strong> ${formatScore(data.technical_score)} (20% weight)
+            </div>
+            <div class="mb-2">
+                <strong>Readability:</strong> ${formatScore(data.readability_score * 100)} (15% weight)
+            </div>
+        `;
         
         // Update mobile metrics
         document.getElementById('mobileFriendly').innerHTML = formatStatus(data.mobile.is_mobile_friendly);
@@ -234,4 +268,4 @@ document.getElementById('exportBtn').addEventListener('click', async () => {
         console.error('Error:', error);
         alert('Failed to export report: ' + error.message);
     }
-}); 
+});

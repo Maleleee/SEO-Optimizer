@@ -139,6 +139,89 @@ def analyze_social_media(soup):
     
     return social_links
 
+def calculate_overall_seo_score(data):
+    """Calculate overall SEO score based on various metrics"""
+    weights = {
+        'performance': 0.25,    # 25% weight
+        'mobile': 0.20,         # 20% weight
+        'content': 0.20,        # 20% weight
+        'technical': 0.20,      # 20% weight
+        'readability': 0.15     # 15% weight
+    }
+    
+    # Performance score (0-100)
+    performance_score = data['performance']['performance_score']
+    print(f"Performance score: {performance_score}")
+    
+    # Mobile score (0-100)
+    mobile_score = data['mobile']['mobile_score']
+    print(f"Mobile score: {mobile_score}")
+    
+    # Content score (0-100)
+    content_score = 0
+    # Title length score (0-30)
+    title_length = len(data['title'])
+    print(f"Title length: {title_length}")
+    if 50 <= title_length <= 60:
+        content_score += 30
+    elif 40 <= title_length < 50 or 60 < title_length <= 70:
+        content_score += 20
+    else:
+        content_score += 10
+    
+    # Meta description score (0-30)
+    meta_length = len(data['meta_description'])
+    print(f"Meta description length: {meta_length}")
+    if 150 <= meta_length <= 160:
+        content_score += 30
+    elif 130 <= meta_length < 150 or 160 < meta_length <= 180:
+        content_score += 20
+    else:
+        content_score += 10
+    
+    # Word count score (0-40)
+    word_count = data['word_count']
+    print(f"Word count: {word_count}")
+    if word_count >= 1000:
+        content_score += 40
+    elif word_count >= 500:
+        content_score += 30
+    elif word_count >= 300:
+        content_score += 20
+    else:
+        content_score += 10
+    
+    # Technical score (0-100)
+    technical_score = 0
+    # URL structure (0-50)
+    if data['url_structure']['is_clean']:
+        technical_score += 50
+    elif data['url_structure']['is_ok']:
+        technical_score += 30
+    else:
+        technical_score += 10
+    
+    # Heading structure (0-50)
+    heading_score = min(50, sum(data['headings'].values()) * 10)
+    print(f"Heading score: {heading_score}")
+    technical_score += heading_score
+    
+    # Readability score (convert from -1 to 1 scale to 0-100)
+    readability_score = ((data['readability_score'] + 1) / 2) * 100
+    print(f"Readability score: {readability_score}")
+    
+    # Calculate weighted average
+    overall_score = (
+        performance_score * weights['performance'] +
+        mobile_score * weights['mobile'] +
+        content_score * weights['content'] +
+        technical_score * weights['technical'] +
+        readability_score * weights['readability']
+    )
+    print(f"Overall score: {overall_score}")
+    
+    return round(overall_score, 1), content_score, technical_score
+
 def analyze_url(url):
     try:
         print(f"Starting analysis for URL: {url}")
@@ -200,9 +283,10 @@ def analyze_url(url):
             'path': parsed_url.path,
             'params': parsed_url.params,
             'query': parsed_url.query,
-            'fragment': parsed_url.fragment
+            'fragment': parsed_url.fragment,
+            'is_clean': True  # Assuming a placeholder value for is_clean
         }
-        print(f"URL structure analyzed")
+        print(f"URL structure analyzed: {url_structure}")
         
         # Enhanced analysis
         print("Starting image analysis...")
@@ -222,6 +306,29 @@ def analyze_url(url):
         
         print("All analysis completed successfully")
         
+        # Calculate overall SEO score
+        overall_seo_score, content_score, technical_score = calculate_overall_seo_score({
+            'title': title,
+            'title_length': title_length,
+            'meta_description': meta_description,
+            'meta_length': meta_length,
+            'word_count': word_count,
+            'keyword_density': keyword_density,
+            'readability_score': readability_score,
+            'url': url,
+            'url_length': len(url),
+            'url_structure': url_structure,
+            'image_analysis': image_analysis,
+            'link_analysis': link_analysis,
+            'heading_analysis': heading_analysis,
+            'content_quality': content_quality,
+            'social_media': social_media,
+            'performance': performance,
+            'mobile': mobile,
+            'headings': heading_analysis,  # Ensure headings are included
+            'status': 'success'
+        })
+        
         return {
             'title': title,
             'title_length': title_length,
@@ -240,6 +347,9 @@ def analyze_url(url):
             'social_media': social_media,
             'performance': performance,
             'mobile': mobile,
+            'overall_seo_score': overall_seo_score,
+            'content_score': content_score,  # Include content score
+            'technical_score': technical_score,  # Include technical score
             'status': 'success'
         }
     except requests.exceptions.RequestException as e:
@@ -254,7 +364,6 @@ def analyze_url(url):
             'status': 'error',
             'message': f'An unexpected error occurred: {str(e)}'
         }
-
 def generate_pdf_report(data, url):
     try:
         buffer = BytesIO()
